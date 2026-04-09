@@ -1,0 +1,184 @@
+syntax = "proto2";
+
+package sensry.api.v1;
+
+message GlobalConfigEnabledFeaturesClass
+{
+    // Enums
+    enum Type {
+        beacon_mode = 0;
+        radio_time_sync = 1;
+        vibration_approximation = 2;
+    }
+}
+
+message UIModeClass {
+
+    enum Type {
+        none = 0;
+        periodic = 1;
+        sw_sync = 2;
+        hw_sync = 3;
+    }
+}
+
+message TransformationMethodClass {
+
+    enum Type {
+        mean = 0;
+        median = 1;
+        max = 2;
+        min = 3;
+    }
+}
+
+message TimesyncClass
+{
+    enum TimestampType {
+        tai = 0;
+        utc = 1;
+    }
+
+    enum InterpolationMode {
+        none = 0;
+        liner = 1;
+        cubic = 2;
+    }
+}
+
+message ExtensionClass
+{
+    enum BoardType {
+        none = 0;
+        hf_gas = 1;
+        microstrain = 2;
+        temperature = 3;
+        thermocouple = 4;
+    }
+}
+
+// Top-level config
+message Config {
+    optional ConfigMetaInfo meta_info = 255;
+    optional GlobalConfig global_config_label = 2;
+    optional SensorConfig sensor_config = 3;
+    optional TransformationConfig transformation_config = 4;
+    optional ExtensionConfig extension_config = 5;
+    optional TimesyncConfig timesync_config = 6;
+    optional UIManagerConfig ui_manager_config = 7;
+
+}
+
+// Messages
+message ConfigMetaInfo {
+    required uint32 config_version = 1;
+    required uint32 config_crc = 255; // use uint16 if you prefer
+}
+
+message UIManagerConfig {
+    required UIModeClass.Type mode = 1;
+}
+
+// Messages
+message GlobalConfig {
+    optional string device_name = 1;
+    optional int32 log_level = 2;
+    repeated GlobalConfigEnabledFeaturesClass.Type enabled_features = 3;
+}
+
+message TimesyncConfig {
+    required int32 prolongation_offset = 1;
+    required TimesyncClass.TimestampType timestamp_type = 2;
+    required TimesyncClass.InterpolationMode interpolation_mode = 3;
+
+}
+
+message SensorConfig {
+    optional SensorDefaults defaults = 1;
+    optional VibrationConfig vibration = 2;
+    optional TemperatureConfig temperature = 3;
+    optional ADCExtentionConfig microstrain = 4;
+    optional ADCExtentionConfig pt100 = 5;
+    optional ADCExtentionConfig thermocouple = 6;  // <-- Added here
+}
+
+message SensorDefaults {
+    required int32 sampling_rate = 1;
+    required string unit = 2;
+}
+
+message VibrationConfig {
+    required float threshold = 1;
+}
+
+message TemperatureConfig {
+    optional int32 sampling_rate = 1;
+    optional string unit = 2;
+    optional uint32 calibration_mode = 3;
+}
+
+message TransformationConfig {
+    required float scale = 1;
+    optional float offset = 2;
+    repeated string filters = 3;
+    optional TransformationCustom custom = 4;
+}
+
+message TransformationCustom {
+    required int32 window_size = 1;
+    required TransformationMethodClass.Type method = 2;
+}
+
+
+message ExtensionConfig {
+    required ExtensionClass.BoardType extension_board_type = 1;
+}
+
+// ----------------------------------------------------------------------
+// Microstrain messages
+// ----------------------------------------------------------------------
+
+message AdcDriverConfig {
+    optional uint32 samples_per_second = 1;   // originally uint16_t
+    optional uint32 v_ref = 2;                // originally uint8_t
+    optional uint32 continiouse_mode = 3;     // originally uint8_t
+    optional uint32 adc_gain = 4;             // originally uint8_t
+    optional uint32 meas_cur = 5;             // originally uint8_t
+    optional uint32 meas_cur_output = 6;      // originally uint8_t
+    optional uint32 differential = 7;         // originally uint8_t
+    optional uint32 idac1_ch = 8;             // originally uint8_t
+    optional uint32 idac2_ch = 9;             // originally uint8_t
+    optional uint32 input_pos = 10;
+    optional uint32 input_neg = 11;
+}
+
+message ADCSensorWireMode
+{
+    // Enums
+    enum Type {
+        two_wire = 0;
+        three_wire = 1;
+        four_wire = 2;
+    }
+}
+
+message ADCSensorItemConfig {
+    optional uint32 over_sampling = 2;
+    optional uint32 oversampling_interval_us = 3;
+    optional uint32 resolution = 4;
+    optional float r_ref = 5;                       // ohms
+    optional float offset = 6;
+    optional float adc_quantization = 7;
+    optional float lp_coof = 8;
+    optional ADCSensorWireMode.Type wire_mode = 9;
+    repeated AdcDriverConfig adc_config = 10;
+}
+
+message ADCExtentionConfig
+{
+    optional uint32 enable_sensors = 1;
+    optional uint32 period_us = 2;
+    repeated ADCSensorItemConfig config = 3;
+}
+
+
