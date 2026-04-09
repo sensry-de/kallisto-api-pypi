@@ -22,7 +22,7 @@ Here’s a simple example showing how to connect to a Kallisto device, and get t
 
 ```python
 from time import sleep
-from kallistoapiv2.kallisto_manager import KallistoManager
+from kallistoapi.kallisto_manager import KallistoManager
 
 import argparse
 
