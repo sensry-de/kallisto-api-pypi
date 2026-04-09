@@ -1,28 +1,104 @@
-# Kallisto API & Demo Suite
+# KallistoAPI  Python Library
 
-This repository contains the **Kallisto Python API**, example test scripts for **Kallisto devices**.
+**KallistoAPI** is a Python library for interacting with Kallisto sensor nodes over BLE (Bluetooth Low Energy). It provides easy access to device information, time synchronization, and readings from a wide range of environmental and motion sensors.
 
-The folders are organized at folloing:
-* **\kallistoapi** > Kallisto python library to access the sensor nodes
-* **\tests** > short python Kallisto tests, please refer to the specific [Documentation](tests/README.md)
+This library is designed for developers and researchers who want to integrate Kallisto sensor data into Python applications with minimal setup.
 
----
+## Features
+
+- Connect to Kallisto sensor nodes via BLE
+- Read and update device time
+- Access a variety of sensor modules including temperature, humidity, accelerometer, gyrometer, light, pressure, gas sensors, and more
 
 ## Installation
 
-Install the API as a package using `setup.py`:
-
 ```bash
-python -m pip install .
+pip install kallistoapi
 ```
 
-The requirements for the [/tests](tests) can be installed using the [requirements.txt](requirements.txt):
+## Quick Start
 
-```bash
-pip install -r requirements.txt
+Here’s a simple example showing how to connect to a Kallisto device, and get the accelerometer values:
+
+```python
+from time import sleep
+from kallistoapiv2.kallisto_manager import KallistoManager
+
+import argparse
+
+parser = argparse.ArgumentParser(description="Connect to a BLE device using KallistoSensorsManager")
+parser.add_argument(
+    "-m", "--mac",
+    help=f"BLE MAC address"
+)
+
+args = parser.parse_args()
+mac_address = args.mac
+
+kallisto = KallistoManager()
+
+if not kallisto.connect(mac_address):
+    print("Failed to connect to Kallisto")
+    exit(1)
+
+modules = kallisto.discover_modules()
+print("available modules")
+for module in modules:
+    print(f" - {module}")
+
+accelerometer0 = kallisto.get_module("accelerometer", 0)
+
+parameters = accelerometer0.parameters()
+print(f"available parameters for {accelerometer0}")
+for parameter, desc in parameters.items():
+    print(f" - {parameter}: {desc}")
+
+accelerometer0.configure("enable", True)
+accelerometer0.configure("sample_rate", "200Hz")
+accelerometer0.configure("sensitivity", "8g")
+accelerometer0.apply_config()
+
+def handle_accel(sender, data_array):
+    value_list = accelerometer0.decode(data_array)
+    print("handle_accel value_list {}".format(value_list))
+
+accelerometer0.start_notify(handle_accel)
+
+sleep(20)
+
+accelerometer0.stop_notify()
+
+kallisto.disconnect()
+
 ```
 
-## Test
+## Available Sensor Modules
 
-To test the Kallisto Python API, please install the Library as described and checkout the **\test** folder. The MAC
-addresses of the devices under test must be added/changed in [\tests\test_settings.py](tests/test_settings.py).
+Kallisto currently supports the following sensor modules:
+
+### Motion & Orientation (IMU)
+- `vibration`
+- `magnetometer`
+- `accelerometer`
+- `gyrometer`
+
+### Environmental / Air Quality
+- `temperature`
+- `light`
+- `pressure`
+- `humidity`
+- `eco2`
+- `bvoc`
+- `iaq`
+
+### ADC Sensors
+- `pt100`
+
+### Device & Power
+- `fuel_gauge`
+- `tx_power`
+- `device_info`
+
+
+
+
