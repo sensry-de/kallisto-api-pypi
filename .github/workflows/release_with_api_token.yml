@@ -1,0 +1,37 @@
+name: Publish Python Package (via API Token)
+
+on:
+  release:
+    types: [created]  # Runs when a new release is created
+  push:
+    branches:
+      - main  # Runs on every commit to the main branch
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-publish:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: "3.x"
+
+      - name: Install build tools
+        run: |
+          python -m pip install --upgrade pip
+          pip install build twine
+
+      - name: Build package
+        run: python -m build
+
+      - name: Publish package to PyPI (via API Token)
+        env:
+          PYPI_API_TOKEN: ${{ secrets.PYPI_API_TOKEN }}
+        run: python -m twine upload --username __token__ --password "$PYPI_API_TOKEN" dist/*
