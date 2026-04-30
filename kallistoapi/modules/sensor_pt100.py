@@ -11,6 +11,7 @@ class SensorPT100(Sensor):
 
         # register functions for configuration parameters
         self.register("sample_rate", self._get_sample_rate, self._set_sample_rate)
+        self.register("adc_config", self._get_adc_config, self._set_adc_config)
         self.decode = self.decode_timestamp_value_pairs
 
         self.timestamp_length = 8
@@ -44,6 +45,19 @@ class SensorPT100(Sensor):
     @classmethod
     def config_uuid(cls):
         return "00002314-702b-69b5-b243-d6094a2b0e24"
+
+    def _get_adc_config(self):
+        return self.adc_config
+
+    def _set_adc_config(self, config):
+        self.adc_config = config
+        config_string = config.SerializeToString()
+        if len(self.config_bytes) > 0:
+            header = self.config_bytes[0]
+        else:
+            header = 0x00
+
+        self.config_bytes = bytearray([header]) + config_string
 
     def _get_sample_rate(self):
         return
