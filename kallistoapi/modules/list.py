@@ -16,6 +16,8 @@ from kallistoapi.modules.sensor_eco2 import SensorECO2
 from kallistoapi.modules.sensor_tvoc import SensorTvoc
 from kallistoapi.modules.sensor_bvoc import SensorBVOC
 from kallistoapi.modules.sensor_iaq import SensorIAQ
+from kallistoapi.modules.sensor_time import SensorTime
+from kallistoapi.modules.sensor_battery import SensorBattery
 
 
 class ModuleList:
@@ -38,6 +40,8 @@ class ModuleList:
         SensorTxPower.identity_uuid(): SensorTxPower,
         SensorPT100.identity_uuid(): SensorPT100,
         SensorEnvVector.identity_uuid(): SensorEnvVector,
+        SensorTime.identity_uuid(): SensorTime,
+        SensorBattery.identity_uuid(): SensorBattery,
     }
 
 
