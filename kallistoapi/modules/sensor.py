@@ -1,3 +1,4 @@
+import types
 from kallistoapi.modules.base import ModuleBase
 import struct
 
@@ -16,11 +17,13 @@ class Sensor(ModuleBase):
         self.decode = self.decode_timestamp_value_pairs
 
         self.recieved_data = dict()
+        self.result_value_list = list()
         #
         self.register("enable", self._get_enable, self._set_enable, "Enable sensor")
 
         self.data = {}
         self._mac = None
+        self.data_callback = None
         #
         self.config_bytes = bytearray()
 
@@ -32,21 +35,35 @@ class Sensor(ModuleBase):
     def config_uuid(cls):
         raise NotImplementedError()
 
-    def start_notify(self, notify_callback=None):
-        if notify_callback is None:
-            notify_callback = self.__notify_callback
-        super().start_notify(notify_callback)
+    def ble_notify_callback(self, sender, data_array):
+        value_list = self.decode(data_array)
+
+        if not (self.data_callback is None):
+            self.data_callback(sender, value_list)
+
+    def start_notify(self, param=None):
+        if type(param) is list:
+            self.recieved_data.clear()
+            self.data_callback = self.default_data_handler
+            self.result_value_list = param
+        else:
+            if param is None:
+                self.data_callback = self.__notify_callback
+            else:
+                self.data_callback = param
+
+        super().start_notify(self.ble_notify_callback)
         return
 
     def stop_notify(self):
         super().stop_notify()
-        return
+        return self.get_data()
 
-    def __notify_callback(self, sender, data_array):
-        value_list = self.decode(data_array)
-
+    def default_data_handler(self, sender, value_list):
         # Normalize MAC into DBus format
-        mac_dbus = "dev_" + self._mac.replace(":", "_")
+        mac_dbus = ""
+        if not self._mac is None:
+            mac_dbus = "dev_" + self._mac.replace(":", "_")
 
         if not mac_dbus in sender.path:
             print("not {} in {}", mac_dbus, sender.path)
@@ -56,14 +73,21 @@ class Sensor(ModuleBase):
         if not uuid in self.recieved_data.keys():
             self.recieved_data[uuid] = []
 
-        print(value_list)
         self.recieved_data[uuid].append(value_list)
+
+    def __notify_callback(self, sender, value_list):
+        print(value_list)
 
     def get_data(self):
         uuid = self.data_uuid()
         if uuid not in self.recieved_data.keys():
-            return None
-        return self.recieved_data[uuid]
+            return list()
+
+        if self.result_value_list is None:
+            self.result_value_list = list()
+
+        self.result_value_list.append(self.recieved_data[uuid])
+        return self.result_value_list
 
     # default for all sensors
     def _get_enable(self):
