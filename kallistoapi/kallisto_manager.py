@@ -51,6 +51,7 @@ CONFIG_UUIDS = {
     "microstrain_log": "00002214-702b-69b5-b243-d6094a2b0e24",
     "battery_shutdown": "2a1b",
     "boot_config" : "00003042-702b-69b5-b243-d6094a2b0e24",
+    "boot_config_cmd" : "00003045-702b-69b5-b243-d6094a2b0e24",
 }
 
 def get_config_uuid(name):
@@ -162,6 +163,7 @@ class KallistoManager(BluetoothGatt):
 
     def discover_modules(self):
         services = self.detect_services()
+        self.modules = {}
 
         for service_uuid, service in services.items():
             for characteristic_uuid, dummy in service.items():
@@ -183,6 +185,12 @@ class KallistoManager(BluetoothGatt):
             for idx in self.modules[module_type]:
                 m.append(self.modules[module_type][idx])
         return m
+
+    def sync_time(self):
+        time0 = self.get_module("time", 0)
+        if time0 is not None:
+            time0.configure("datetime", None)
+            time0.apply_config()
 
     def get_module(self, module_type, idx = 0):
         if not module_type in self.modules:
@@ -215,6 +223,14 @@ class KallistoManager(BluetoothGatt):
         print(f"KM Start notify on uuid: {get_characteristic_uuid(sensor_name)}")
         self.start_gatt_notify(get_characteristic_uuid(sensor_name), self._notify_callback)
 
+    def uart_notification_handler(self, sender, data):
+        print(f"Received from device: {data.decode('utf-8')}")
+        return
+
+    def start_ble_logs(self):
+        NUS_TX_UUID = "6E400003-B5A3-F393-E0A9-E50E24DCCA9E"  # Notify
+        self.start_gatt_notify(NUS_TX_UUID, self.uart_notification_handler)
+        return
     def stop_notify(self, sensor_name):
         print(f"Stop notify on uuid: {get_characteristic_uuid(sensor_name)}")
         self.stop_gatt_notify(get_characteristic_uuid(sensor_name))
@@ -424,6 +440,138 @@ class KallistoManager(BluetoothGatt):
     def set_boot_config(self, payload):
         uuid = get_config_uuid("boot_config")
         self.write_big_payload(uuid, payload)
+
+    import time
+
+    def handler(self, sender, data):
+        order = int.from_bytes(data[0:2], "little")
+        offset = int.from_bytes(data[2:6], "little")
+        length = int.from_bytes(data[6:10], "little")
+
+        payload = data[10:10 + length]
+
+        if order == 0xFFFF:
+            self.stats["end_time"] = time.time()
+            print("Transfer complete")
+            self.transfer_complete = True
+            return
+
+        # stats
+        self.stats["messages"] += 1
+        self.stats["bytes_received"] += length
+
+        if self.stats["min_chunk"] is None or length < self.stats["min_chunk"]:
+            self.stats["min_chunk"] = length
+
+        if length > self.stats["max_chunk"]:
+            self.stats["max_chunk"] = length
+
+        # detect duplicate
+        if offset in self.buffer:
+            self.stats["duplicates"] += 1
+
+        # store chunk
+        self.buffer[offset] = payload
+        self.max_offset = max(self.max_offset, offset + length)
+
+        print(f"chunk {order}, offset {offset}, len {length}")
+
+    def rebuild(self):
+        data = bytearray()
+        expected_offset = 0
+
+        for offset in sorted(self.buffer.keys()):
+            chunk = self.buffer[offset]
+            length = len(chunk)
+
+            if offset != expected_offset:
+                print(f"Gap detected: expected {expected_offset}, got {offset}")
+                self.stats["gaps"] += 1
+                return None
+
+            data.extend(chunk)
+            expected_offset += length
+
+        if expected_offset != self.max_offset:
+            print(f"Size mismatch: built {expected_offset}, expected {self.max_offset}")
+            return None
+
+        return data
+
+    def print_stats(self):
+        duration = None
+        if self.stats["end_time"]:
+            duration = self.stats["end_time"] - self.stats["start_time"]
+
+        avg_chunk = 0
+        if self.stats["messages"] > 0:
+            avg_chunk = self.stats["bytes_received"] / self.stats["messages"]
+
+        throughput = 0
+        if duration and duration > 0:
+            throughput = self.stats["bytes_received"] / duration
+
+        print("\n=== TRANSFER STATS ===")
+        print(f"Messages:        {self.stats['messages']}")
+        print(f"Duplicates:      {self.stats['duplicates']}")
+        print(f"Gaps detected:   {self.stats['gaps']}")
+        print(f"Total bytes:     {self.stats['bytes_received']}")
+        print(f"Min chunk:       {self.stats['min_chunk']}")
+        print(f"Max chunk:       {self.stats['max_chunk']}")
+        print(f"Avg chunk:       {avg_chunk:.2f}")
+
+        if duration:
+            print(f"Transfer time:   {duration:.3f} sec")
+            print(f"Throughput:      {throughput:.2f} bytes/sec")
+
+    def set_write_enable(self, enable):
+        cmd_uuid = get_config_uuid("boot_config_cmd")
+        cmd = 1 if enable else 3
+        packet = struct.pack('<B', cmd)
+        value = self.write_gatt_characteristics(cmd_uuid, packet)
+        time.sleep(1)
+
+    def get_boot_config(self):
+
+        uuid = get_config_uuid("boot_config")
+        cmd_uuid = get_config_uuid("boot_config_cmd")
+        self.buffer = {}  # offset → bytes
+        self.transfer_complete = False
+        self.max_offset = 0
+
+        cmd = 3
+        packet = struct.pack('<B', cmd)
+        value = self.write_gatt_characteristics(cmd_uuid, packet)
+        time.sleep(1)
+
+        self.start_gatt_notify(uuid, self.handler)
+
+        self.stats = {
+            "start_time": time.time(),
+            "end_time": None,
+
+            "messages": 0,
+            "duplicates": 0,
+
+            "bytes_received": 0,
+            "min_chunk": None,
+            "max_chunk": 0,
+
+            "gaps": 0,
+        }
+
+        cmd = 2
+        offset = 0
+        payload_len = 0
+        packet = struct.pack('<BII', cmd, offset, payload_len)
+        value = self.write_gatt_characteristics(cmd_uuid, packet)
+        while not self.transfer_complete:
+            time.sleep(1)
+        value = self.rebuild()
+        print("get_boot_config value {}".format(value))
+
+        self.print_stats()
+        return value
 
     def start_temperature_notify(self, context):
         self.start_gatt_notify("temperature", context)
