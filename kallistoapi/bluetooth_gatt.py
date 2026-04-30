@@ -91,6 +91,13 @@ class BluetoothGatt:
 
     ###############################
     # internal functions
+
+    def normalize_uuid(u):
+        u = u.lower()
+        if len(u) == 4:  # 16-bit UUID
+            return f"0000{u}-0000-1000-8000-00805f9b34fb"
+        return u
+
     def _discover_services(self):
         for service in self._client.services:
             for characteristic in service.characteristics:

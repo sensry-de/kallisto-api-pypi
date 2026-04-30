@@ -23,9 +23,8 @@ Here’s a simple example showing how to connect to a Kallisto device, and get t
 ```python
 from time import sleep
 from kallistoapi.kallisto_manager import KallistoManager
-
-def handle_accel(sender, data_array):
-    value_list = accelerometer0.decode(data_array)
+  
+def handle_accel(sender, value_list):
     print("handle_accel value_list {}".format(value_list))
     
 mac_address = "11:22:33:44:55:66"
