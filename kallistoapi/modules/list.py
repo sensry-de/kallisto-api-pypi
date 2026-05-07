@@ -19,7 +19,7 @@ from kallistoapi.modules.sensor_iaq import SensorIAQ
 from kallistoapi.modules.sensor_time import SensorTime
 from kallistoapi.modules.sensor_battery import SensorBattery
 from kallistoapi.modules.sensor_thermocouple import SensorThermocouple
-
+from kallistoapi.modules.sensor_noise import SensorNoise
 
 class ModuleList:
     __list = {
@@ -44,6 +44,7 @@ class ModuleList:
         SensorTime.identity_uuid(): SensorTime,
         SensorBattery.identity_uuid(): SensorBattery,
         SensorThermocouple.identity_uuid(): SensorThermocouple,
+        SensorNoise.identity_uuid(): SensorNoise,
     }
 
 

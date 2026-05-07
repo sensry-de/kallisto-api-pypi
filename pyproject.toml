@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kallistoapi"
-version = "2.0.4"
+version = "2.0.5"
 description = "Sensry Kallisto API package"
 authors = [{ name = "Dzmitry Yemelyanau", email = "d.yemelyanau@sensry.de" }]
 readme = "README.md"

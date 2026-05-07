@@ -29,6 +29,7 @@ class Sensor(ModuleBase):
 
     def apply_config(self):
         print(f"Applying config {self.name()} {self.config_uuid()} to {self.config_bytes}")
+
         self.write(self.config_uuid(), self.config_bytes)
 
     def get_config(self):
