@@ -31,6 +31,11 @@ class Sensor(ModuleBase):
         print(f"Applying config {self.name()} {self.config_uuid()} to {self.config_bytes}")
         self.write(self.config_uuid(), self.config_bytes)
 
+    def get_config(self):
+        print(f"Getting config {self.name()} {self.config_uuid()} to {self.config_bytes}")
+        self.config_bytes = self.read(self.config_uuid())
+        return
+
     @classmethod
     def config_uuid(cls):
         raise NotImplementedError()

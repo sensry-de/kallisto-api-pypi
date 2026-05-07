@@ -4,17 +4,14 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "kallistoapi"
-version = "2.0.3"
+version = "2.0.4"
 description = "Sensry Kallisto API package"
 authors = [{ name = "Dzmitry Yemelyanau", email = "d.yemelyanau@sensry.de" }]
 readme = "README.md"
 license = { file = "LICENSE" }
 dependencies = ["bleak==0.22.3",
     "dateutils==0.6.12",
-    "psutil==6.1.0",
     "pywin32==310; sys_platform == 'win32'",
-    "scipy==1.15.2",
-    "numpy==2.4.2",
     "crcmod==1.7",
     "protobuf==6.31.1"]
 

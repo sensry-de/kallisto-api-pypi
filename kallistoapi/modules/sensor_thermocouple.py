@@ -1,16 +1,15 @@
 from kallistoapi.modules.sensor import Sensor
 from kallistoapi.config_pb2 import ADCExtentionConfig
 
-class SensorPT100(Sensor):
+class SensorThermocouple(Sensor):
 
     def __init__(self, device):
-        Sensor.__init__(self, device, "pt100")
+        Sensor.__init__(self, device, "thermocouple")
 
         # configure decoding
         self.scaling = 1.0 / 100
 
         # register functions for configuration parameters
-        self.register("sample_rate", self._get_sample_rate, self._set_sample_rate)
         self.register("adc_config", self._get_adc_config, self._set_adc_config)
         self.decode = self.decode_timestamp_value_pairs
 
@@ -35,7 +34,7 @@ class SensorPT100(Sensor):
 
     @classmethod
     def data_uuid(cls):
-        return "00002311-702b-69b5-b243-d6094a2b0e24"
+        return "00002511-702b-69b5-b243-d6094a2b0e24"
 
 
 
@@ -44,7 +43,7 @@ class SensorPT100(Sensor):
 
     @classmethod
     def config_uuid(cls):
-        return "00002312-702b-69b5-b243-d6094a2b0e24"
+        return "00002512-702b-69b5-b243-d6094a2b0e24"
 
     def _get_adc_config(self):
         result_config = None

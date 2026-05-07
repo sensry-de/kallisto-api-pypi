@@ -18,6 +18,7 @@ from kallistoapi.modules.sensor_bvoc import SensorBVOC
 from kallistoapi.modules.sensor_iaq import SensorIAQ
 from kallistoapi.modules.sensor_time import SensorTime
 from kallistoapi.modules.sensor_battery import SensorBattery
+from kallistoapi.modules.sensor_thermocouple import SensorThermocouple
 
 
 class ModuleList:
@@ -42,6 +43,7 @@ class ModuleList:
         SensorEnvVector.identity_uuid(): SensorEnvVector,
         SensorTime.identity_uuid(): SensorTime,
         SensorBattery.identity_uuid(): SensorBattery,
+        SensorThermocouple.identity_uuid(): SensorThermocouple,
     }
 
 
