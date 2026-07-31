@@ -2,15 +2,23 @@ from datetime import datetime, timezone
 import struct
 from kallistoapi.modules.sensor import Sensor
 from dataclasses import dataclass
-
+from typing import Union
 
 
 class SensorBattery(Sensor):
     @dataclass
     class ShutdownConfig:
-        command: int
-        mode: int
-        timestamp: float
+        command: int = None
+        mode: int = None
+        timestamp: Union[datetime, int] = None
+
+        def __post_init__(self):
+            if self.mode == 0x01 and not isinstance(self.timestamp, int):
+                raise TypeError("For mode 0x01, timestamp must be int")
+
+            if self.mode == 0x02 and not isinstance(self.timestamp, datetime):
+                raise TypeError("For mode 0x02, timestamp must be datetime")
+
 
     def __init__(self, device):
         Sensor.__init__(self, device, "battery")
@@ -21,7 +29,28 @@ class SensorBattery(Sensor):
         #
         self.config_bytes = bytearray()
         # register functions for configuration parameters
-        self.register("shutdown", self._get_shutdown, self._set_shutdown)
+
+        shutdown_description = """
+        Configure device shutdown or reboot behavior.
+
+        Parameters:
+            command:
+                0x01 -> shutdown device
+                0x02 -> reboot device
+
+            mode:
+                0x01 -> time offset in seconds
+                         timestamp must be int
+
+                0x02 -> absolute date/time
+                         timestamp must be datetime
+
+            timestamp:
+                int       -> delay in seconds (mode 0x01)
+                datetime  -> exact execution time (mode 0x02)
+        """
+
+        self.register("shutdown", self._get_shutdown, self._set_shutdown, shutdown_description)
 
     ## ----------------------------------------------------
     ## used to identify this service

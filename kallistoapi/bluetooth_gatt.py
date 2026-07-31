@@ -22,7 +22,7 @@ class BluetoothGatt:
 
         self.disconnect_handler = None
 
-    def connect(self, mac_address: str, disconnect_callback=None):
+    def connect(self, mac_address: str, disconnect_callback=None, timeout = 60):
     # if self.is_device_connected(mac_address):
     #            print(f"Device {mac_address} is already connected")
     #        return False
@@ -36,7 +36,7 @@ class BluetoothGatt:
         self._mac = mac_address
 
         self.disconnect_handler = disconnect_callback
-        if not self._await_bleak_loop(self._connect(self._mac), 60):
+        if not self._await_bleak_loop(self._connect(self._mac), timeout):
             self.disconnect_handler = None
             print("connection timed out")
             return False
