@@ -242,8 +242,8 @@ message ThermocoupleModel {
   repeated LutPoint correction_lut = 1;
 
   // Polynomial segments (piecewise model)
-  repeated PolySegment segmentst_t2v = 2;
-  repeated PolySegment segments_v2t = 8;
+  repeated PolySegment segments_v2t = 2;
+  repeated PolySegment segments_t2v = 8;
 
   // Correction model (optional, used by K/N/etc)
   optional double corr_a0 = 3;
