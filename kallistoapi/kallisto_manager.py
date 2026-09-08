@@ -789,7 +789,7 @@ class KallistoManager(BluetoothGatt):
 
             # Write the header
 
-            header = ['Timestamp\Sensor type', 'temperature', ' vibration X', ' vibration Y', ' vibration Z', '']
+            header = ['Timestamp\\Sensor type', 'temperature', ' vibration X', ' vibration Y', ' vibration Z', '']
             writer.writerow(header)
 
             # Write each row

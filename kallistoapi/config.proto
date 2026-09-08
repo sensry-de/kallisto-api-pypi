@@ -96,9 +96,10 @@ message GlobalConfig {
 
 message TimesyncConfig {
 
-    required int32 prolongation_offset = 1;
-    required TimesyncClass.TimestampType timestamp_type = 2;
-    required TimesyncClass.InterpolationMode interpolation_mode = 3;
+    optional int32 prolongation_offset = 1;
+    optional TimesyncClass.TimestampType timestamp_type = 2;
+    optional TimesyncClass.InterpolationMode interpolation_mode = 3;
+    optional uint32 beacon_id = 4;
 
 }
 
@@ -133,6 +134,7 @@ message TemperatureConfig {
     optional int32 sampling_rate = 1;
     optional string unit = 2;
     optional uint32 calibration_mode = 3;
+    optional uint32 bsec_disabled = 4;
 }
 
 message TransformationConfig {
@@ -208,7 +210,7 @@ message ADCSensorItemConfig {
 
     optional ThermocoupleModel tc_model = 13;
 
-    optional uint32 internal_temp_over_sampling = 14;
+    optional uint32 internal_temp_over_sampling = 14 ;
     optional uint32 internal_temp_oversampling_interval_us = 15;
 }
 
