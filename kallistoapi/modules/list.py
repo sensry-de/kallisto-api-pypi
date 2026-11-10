@@ -21,6 +21,8 @@ from kallistoapi.modules.sensor_battery import SensorBattery
 from kallistoapi.modules.sensor_thermocouple import SensorThermocouple
 from kallistoapi.modules.sensor_noise import SensorNoise
 
+from kallistoapi.modules.sensor_microstrain import SensorMicrostrain
+
 class ModuleList:
     __list = {
         DeviceInfo.identity_uuid(): DeviceInfo,
@@ -40,6 +42,7 @@ class ModuleList:
         SensorBarometer.identity_uuid(): SensorBarometer,
         SensorTxPower.identity_uuid(): SensorTxPower,
         SensorPT100.identity_uuid(): SensorPT100,
+        SensorMicrostrain.identity_uuid(): SensorMicrostrain,
         SensorEnvVector.identity_uuid(): SensorEnvVector,
         SensorTime.identity_uuid(): SensorTime,
         SensorBattery.identity_uuid(): SensorBattery,

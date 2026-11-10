@@ -14,12 +14,14 @@ class SensorNoise(Sensor):
         self.register("channel", self._get_channel, self._set_channel)
         self.register("word_width", self._get_word_width, self._set_word_width)
         self.register("frequency", self._get_frequency, self._set_frequency)
+        self.register("raw_flag", self._get_raw_flag, self._set_raw_flag)
 
         self.timestamp_length = 8
         self.value_byte_len = 2
         self.value_count_per_sample = 1
         self.value_type = int
-        self.decode = self.decode_timestamp_value_pairs
+        self.decode = self.decode_2_timestamp_value_pairs
+        self.timestamp_length = 8
 
         #
         # 2-byte BLE configuration packet
@@ -54,6 +56,14 @@ class SensorNoise(Sensor):
     # bits: [3:1]
     # =========================================================================
 
+    def _get_raw_flag(self):
+        flag = (self.config_bytes[1] & 0b10000000) >> 7
+        return flag
+
+    def _set_raw_flag(self, value):
+        self.decode = self.decode_2_timestamp_value_pairs if value else self.decode_timestamp_value_pairs
+        self.config_bytes[1] |= (value << 7)
+
     def _get_sample_rate(self):
         period_code = (self.config_bytes[0] & 0b00001110) >> 1
 
@@ -61,6 +71,7 @@ class SensorNoise(Sensor):
             0b000: "1s",
             0b001: "0.5s",
             0b010: "0.1s",
+            0b011: "0.0s",
         }
 
         return period_map.get(period_code, "0.1s")
@@ -70,12 +81,13 @@ class SensorNoise(Sensor):
             "1s": 0b000,
             "0.5s": 0b001,
             "0.1s": 0b010,
+            "0.0s": 0b011,
         }
 
         if sample_rate not in period_map:
             raise ValueError(
                 "sample_rate must be one of: "
-                "'1s', '0.5s', '0.1s'"
+                "'1s', '0.5s', '0.1s', '0.0s'",
             )
 
         period_code = period_map[sample_rate]
@@ -167,12 +179,9 @@ class SensorNoise(Sensor):
 
         freq_map = {
             0b000: 1000,
-            0b001: 5000,
-            0b010: 10000,
+            0b001: 4000,
+            0b010: 8000,
             0b011: 16000,
-            0b100: 24000,
-            0b101: 32000,
-            0b110: 48000,
         }
 
         return freq_map.get(freq_code, 24000)
@@ -180,18 +189,16 @@ class SensorNoise(Sensor):
     def _set_frequency(self, frequency):
         freq_map = {
             1000: 0b000,
-            5000: 0b001,
-            10000: 0b010,
-            16000: 0b011,
-            24000: 0b100,
-            32000: 0b101,
-            48000: 0b110,
+            2000: 0b001,
+            4000: 0b010,
+            8000: 0b011,
+            16000: 0b100,
         }
 
         if frequency not in freq_map:
             raise ValueError(
                 "frequency must be one of: "
-                "1000, 5000, 10000, 16000, 24000, 32000, 48000"
+                "1000, 2000, 4000, 8000, 16000"
             )
 
         freq_code = freq_map[frequency]

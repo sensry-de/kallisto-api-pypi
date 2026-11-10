@@ -686,55 +686,50 @@ class KallistoManager(BluetoothGatt):
         values = []
 
         RANGE = used_range
-        coofitient = 1.0 if values_in_g else 9.8
-
+        coofitient = 1.0 if values_in_g else 9.80665
+        value_count_per_sample = 3
+        value_byte_len = 2
         end_of_previouse_chunk = bytearray()
 
         try:
             for data_chunk in data_set:
                 data = end_of_previouse_chunk + data_chunk
+                data_array = data
+                l = len(data_array)
+                timestamp_length = 8
+                sample_len = (2 * 6)
 
-                if ((len(data) % 14) != 0):
-                    print(f'Unable to parse byte array of size {len(data)} as vibration data.')
+                samples_count = int((l - 2 * timestamp_length) / sample_len)
 
-                now = datetime.now(tz=timezone.utc)
+                value_list = []
+                # for i in range(0, l, sample_len):
 
-                data_len = len(data)
+                # extract timestamp
+                ts_start = int.from_bytes(data_array[0:timestamp_length], byteorder='little')
+                ts_end = int.from_bytes(data_array[timestamp_length: 2 * timestamp_length], byteorder='little')
+                ts_delta = ts_end - ts_start
+                ts_delta = ts_delta / (samples_count - 1)
+                ts_delta = int(ts_delta)
 
-                for i in range(0, data_len, 14):
-                    measurement = data[i:i + 14]
-                    timestamp = measurement[0:8]
-                    timestamp_int = int.from_bytes(timestamp, "little", signed="False")
-                    timestamp = float(timestamp_int / 1000000000.0)
+                val_bytes = data_array[2 * timestamp_length:]
 
-                    unix_epoch = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                # extract a number of values
+                for index in range(0, samples_count):
 
-                    if now - unix_epoch < timedelta(seconds=5):
-                        print("live data, ignoring")
-                        break
+                    float_values = []
 
-                    # Convert to local time
-                    # Internally, we always use UTC
-                    # if utc == False:
-                    #     to_zone = tz.tzlocal()
-                    #     unix_epoch = unix_epoch.astimezone(to_zone)
-                    #
-                    # unix_epoch_str = unix_epoch.strftime("%d/%m/%Y %H:%M:%S.%f")
+                    for k in range(0, value_count_per_sample):
+                        offset = value_count_per_sample * index
+                        offset = offset + k
+                        offset = offset * value_byte_len
+                        int_value = int.from_bytes(val_bytes[offset:offset + value_byte_len], byteorder='little',
+                                                   signed=True)
+                        float_value = int_value * coofitient * RANGE / 32768.0
+                        float_values.append(float_value)
 
+                    values.append([int(ts_start + index * ts_delta), float_values])
 
-                    x = measurement[8:10]
-                    x = int.from_bytes(x, "little", signed="True")
-                    x = x * (coofitient * RANGE / 32768)
-                    y = measurement[10:12]
-                    y = int.from_bytes(y, "little", signed="True")
-                    y = y * (coofitient * RANGE / 32768)
-                    z = measurement[12:14]
-                    z = int.from_bytes(z, "little", signed="True")
-                    z = z * (coofitient * RANGE / 32768)
-
-                    values.append([timestamp, [x, y, z]])
-
-                end_of_previouse_chunk = data_chunk[i + 14:]
+                end_of_previouse_chunk = bytearray()
         except:
             pass
 
@@ -799,7 +794,7 @@ class KallistoManager(BluetoothGatt):
                 list_vy_content = combined_data[timestamp]["v"][1] if combined_data[timestamp]["v"] is not None else ""
                 list_vz_content = combined_data[timestamp]["v"][2] if combined_data[timestamp]["v"] is not None else ""
                 #print("fromtimestamp")
-                unix_epoch = datetime.fromtimestamp(timestamp, tz=timezone.utc)
+                unix_epoch = datetime.fromtimestamp(timestamp / 1000000000.0, tz=timezone.utc)
 
                 if utc == False:
                     #print("tzlocal")

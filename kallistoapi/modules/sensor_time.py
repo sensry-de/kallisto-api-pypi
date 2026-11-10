@@ -71,5 +71,5 @@ class SensorTime(Sensor):
         minute = int.from_bytes(byte_array[5:6], byteorder="little")
         second = int.from_bytes(byte_array[6:7], byteorder="little")
 
-        timestamp = datetime(year, month, day, hour, minute, second)
+        timestamp = datetime(year, month, day, hour, minute, second, tzinfo=timezone.utc)
         return timestamp

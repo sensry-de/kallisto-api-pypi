@@ -69,10 +69,11 @@ class Sensor(ModuleBase):
         # Normalize MAC into DBus format
         mac_dbus = ""
         if not self._mac is None:
-            mac_dbus = "dev_" + self._mac.replace(":", "_")
+            mac_dbus = "dev_" + self._mac.replace(":", "_").upper()
 
-        if not mac_dbus in sender.path:
-            print("not {} in {}", mac_dbus, sender.path)
+        path = sender.obj[0]
+        if not mac_dbus in path:
+            print("not {} in {}", mac_dbus, path)
             return
 
         uuid = sender.uuid

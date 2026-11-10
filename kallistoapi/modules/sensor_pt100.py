@@ -20,7 +20,7 @@ class SensorPT100(Sensor):
         self.value_type = float
 
         #
-        self.config_bytes = bytearray([0])
+        self.config_bytes = bytearray([2 << 5])  # Disabled, 1 Hz default.
 
 
     ## ----------------------------------------------------
@@ -68,11 +68,9 @@ class SensorPT100(Sensor):
         self.config_bytes = bytearray([header]) + config_string
 
     def _get_sample_rate(self):
-        return
+        return ("10s", "5s", "1s", "0.5s", "0.25s", "0.1s", "0.05s", "0.02s")[self.config_bytes[0] >> 5]
 
     def _set_sample_rate(self, sample_rate):
-        sr_default = 2
-
         sr_name = {
             "10s": 0,
             "5s": 1,
@@ -83,9 +81,12 @@ class SensorPT100(Sensor):
             "0.05s": 6,
             "0.02s": 7,
         }
-        sr = sr_default
-        if sample_rate in sr_name:
-            sr = sr_name[sample_rate]
+        aliases = {"0.1Hz": "10s", "0.2Hz": "5s", "1Hz": "1s", "2Hz": "0.5s",
+                   "4Hz": "0.25s", "10Hz": "0.1s", "20Hz": "0.05s", "50Hz": "0.02s"}
+        sample_rate = aliases.get(sample_rate, sample_rate)
+        if sample_rate not in sr_name:
+            raise ValueError(f"Unsupported PT100 sample rate: {sample_rate}")
+        sr = sr_name[sample_rate]
 
         cfg = (sr << 5)
 

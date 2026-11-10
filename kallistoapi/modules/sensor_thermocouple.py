@@ -10,6 +10,7 @@ class SensorThermocouple(Sensor):
         self.scaling = 1.0 / 100
 
         # register functions for configuration parameters
+        self.register("sample_rate", self._get_sample_rate, self._set_sample_rate)
         self.register("adc_config", self._get_adc_config, self._set_adc_config)
         self.decode = self.decode_timestamp_value_pairs
 
@@ -19,7 +20,12 @@ class SensorThermocouple(Sensor):
         self.value_type = float
 
         #
-        self.config_bytes = bytearray([0])
+        self.config_bytes = bytearray([2 << 5])  # Disabled, 1 Hz default.
+
+    RATE_CODES = {"10s": 0, "5s": 1, "1s": 2, "0.5s": 3,
+                  "0.25s": 4, "0.1s": 5, "0.05s": 6, "0.02s": 7}
+    SAMPLE_INTERVALS = tuple(RATE_CODES)
+    RATE_HZ = dict(zip(SAMPLE_INTERVALS, (0.1, 0.2, 1, 2, 4, 10, 20, 50)))
 
 
     ## ----------------------------------------------------
@@ -47,7 +53,6 @@ class SensorThermocouple(Sensor):
 
     def _get_adc_config(self):
         result_config = None
-        header = self.config_bytes[0]
         config_string = self.config_bytes[1:]
 
         if len(config_string) > 0:
@@ -67,26 +72,20 @@ class SensorThermocouple(Sensor):
         self.config_bytes = bytearray([header]) + config_string
 
     def _get_sample_rate(self):
-        return
+        header = self.config_bytes[0]
+        code = header >> 5
+        if header & 0x1e or code not in self.RATE_CODES.values():
+            raise ValueError("Invalid thermocouple sample-rate code")
+        return next(rate for rate, value in self.RATE_CODES.items() if value == code)
+
+    @classmethod
+    def normalize_sample_rate(cls, sample_rate):
+        aliases = {f"{hz:g}Hz": interval for interval, hz in cls.RATE_HZ.items()}
+        return aliases.get(sample_rate, sample_rate)
 
     def _set_sample_rate(self, sample_rate):
-        sr_default = 2
-
-        sr_name = {
-            "10s": 0,
-            "5s": 1,
-            "1s": 2,
-            "0.5s": 3,
-            "0.25s": 4,
-            "0.1s": 5,
-            "0.05s": 6,
-            "0.02s": 7,
-        }
-        sr = sr_default
-        if sample_rate in sr_name:
-            sr = sr_name[sample_rate]
-
-        cfg = (sr << 5)
-
-        self.config_bytes[0] &= 0b00011111
-        self.config_bytes[0] |= cfg
+        sample_rate = self.normalize_sample_rate(sample_rate)
+        if sample_rate not in self.RATE_CODES:
+            raise ValueError(f"Unsupported thermocouple sample rate: {sample_rate}")
+        code = self.RATE_CODES[sample_rate]
+        self.config_bytes[0] = (self.config_bytes[0] & 1) | (code << 5)
